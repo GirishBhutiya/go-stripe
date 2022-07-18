@@ -513,3 +513,44 @@ func (app *application) ResetPassword(w http.ResponseWriter, r *http.Request) {
 
 	app.writeJSON(w, http.StatusCreated, resp)
 }
+func (app *application) AllSales(w http.ResponseWriter, r *http.Request) {
+
+	allSales, err := app.DB.GetAllOrders(0)
+	if err != nil {
+		app.errorLog.Println(err)
+		app.badRequest(w, r, err)
+		return
+	}
+
+	app.writeJSON(w, http.StatusOK, allSales)
+}
+func (app *application) AllSubscriptions(w http.ResponseWriter, r *http.Request) {
+
+	allSubscriptions, err := app.DB.GetAllOrders(1)
+	if err != nil {
+		app.errorLog.Println(err)
+		app.badRequest(w, r, err)
+		return
+	}
+
+	app.writeJSON(w, http.StatusOK, allSubscriptions)
+}
+
+func (app *application) GetSale(w http.ResponseWriter, r *http.Request) {
+	id := chi.URLParam(r, "id")
+	orderId, err := strconv.Atoi(id)
+	if err != nil {
+		app.errorLog.Println(err)
+		app.badRequest(w, r, err)
+		return
+	}
+
+	order, err := app.DB.GetOrderById(orderId)
+	if err != nil {
+		app.errorLog.Println(err)
+		app.badRequest(w, r, err)
+		return
+	}
+
+	app.writeJSON(w, http.StatusOK, order)
+}
