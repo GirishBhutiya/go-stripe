@@ -27,7 +27,7 @@
     <hr>
 
     <a class="btn btn-info" href="{{index .StringMap "cancel"}}">Cancel</a>
-    <a class="btn btn-warning" id="refund-btn d-none" href="#!">{{index .StringMap "refund-btn"}}</a>
+    <a class="btn btn-warning  d-none" id="mrefund-btn" href="#!">{{index .StringMap "refund-btn"}}</a>
 
     <input type="hidden" id="pi" value="">
     <input type="hidden" id="charge-amount" value="">
@@ -52,7 +52,7 @@
         messages.classList.add("alert-success");
         messages.classList.remove("alert-danger");
         messages.classList.remove("d-none");
-        messages.innerText = msg
+        messages.innerText = msg;
     }
     document.addEventListener("DOMContentLoaded",function(){
         
@@ -79,21 +79,21 @@
                     document.getElementById("charge-amount").value = data.transaction.amount;
                     document.getElementById("currency").value = data.transaction.currency;
                     if(data.status_id === 1){
-                        document.getElementById("refund-btn").classList.remove("d-none");
+                        document.getElementById("mrefund-btn").classList.remove("d-none");
                         document.getElementById("charged").classList.remove("d-none");
                     }else{
                         document.getElementById("refunded").classList.remove("d-none");
                     }
                 }
         })     
-    })
+    });
     function formatCurrency(amount){
         return amount.toLocaleString("en-IN",{
             style: "currency",
             currency: "INR",
-        })
+        });
     }
-    document.getElementById("refund-btn").addEventListener("click",function(){
+    document.getElementById("mrefund-btn").addEventListener("click",function(){
         Swal.fire({
             title: 'Are you sure?',
             text: "You won't be able to undo this!",
@@ -126,7 +126,7 @@
                             showError(data.error);  
                         }else{
                             showSuccess("{{index .StringMap "refunded-msg"}}");
-                            document.getElementById("refund-btn").classList.add("d-none");
+                            document.getElementById("mrefund-btn").classList.add("d-none");
                             document.getElementById("refunded").classList.remove("d-none");
                             document.getElementById("charged").classList.add("d-none");
                         }
@@ -134,6 +134,6 @@
             }
         })    
     
-    })
+    });
 </script>
 {{end}}

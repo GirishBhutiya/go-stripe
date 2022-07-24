@@ -515,25 +515,73 @@ func (app *application) ResetPassword(w http.ResponseWriter, r *http.Request) {
 }
 func (app *application) AllSales(w http.ResponseWriter, r *http.Request) {
 
-	allSales, err := app.DB.GetAllOrders(0)
+	var payload struct {
+		PageSize    int `json:"page_size"`
+		CurrentPage int `json:"page"`
+	}
+
+	err := app.readJSON(w, r, &payload)
+	if err != nil {
+		app.errorLog.Println(err)
+		app.badRequest(w, r, err)
+		return
+	}
+	allSales, lastPage, totalRecords, err := app.DB.GetAllOrdersPaginated(payload.PageSize, payload.CurrentPage, 0)
 	if err != nil {
 		app.errorLog.Println(err)
 		app.badRequest(w, r, err)
 		return
 	}
 
-	app.writeJSON(w, http.StatusOK, allSales)
+	var resp struct {
+		CurrentPage  int             `json:"current_page"`
+		PageSize     int             `json:"page_size"`
+		LastPage     int             `json:"last_page"`
+		TotalRecords int             `json:"total_records"`
+		Orders       []*models.Order `json:"orders"`
+	}
+	resp.CurrentPage = payload.CurrentPage
+	resp.PageSize = payload.PageSize
+	resp.LastPage = lastPage
+	resp.TotalRecords = totalRecords
+	resp.Orders = allSales
+
+	app.writeJSON(w, http.StatusCreated, resp)
 }
 func (app *application) AllSubscriptions(w http.ResponseWriter, r *http.Request) {
+	var payload struct {
+		PageSize    int `json:"page_size"`
+		CurrentPage int `json:"page"`
+	}
 
-	allSubscriptions, err := app.DB.GetAllOrders(1)
+	err := app.readJSON(w, r, &payload)
 	if err != nil {
 		app.errorLog.Println(err)
 		app.badRequest(w, r, err)
 		return
 	}
 
-	app.writeJSON(w, http.StatusOK, allSubscriptions)
+	allSubscriptions, lastPage, totalRecords, err := app.DB.GetAllOrdersPaginated(payload.PageSize, payload.CurrentPage, 1)
+	if err != nil {
+		app.errorLog.Println(err)
+		app.badRequest(w, r, err)
+		return
+	}
+
+	var resp struct {
+		CurrentPage  int             `json:"current_page"`
+		PageSize     int             `json:"page_size"`
+		LastPage     int             `json:"last_page"`
+		TotalRecords int             `json:"total_records"`
+		Orders       []*models.Order `json:"orders"`
+	}
+	resp.CurrentPage = payload.CurrentPage
+	resp.PageSize = payload.PageSize
+	resp.LastPage = lastPage
+	resp.TotalRecords = totalRecords
+	resp.Orders = allSubscriptions
+
+	app.writeJSON(w, http.StatusCreated, resp)
 }
 
 func (app *application) GetSale(w http.ResponseWriter, r *http.Request) {
@@ -640,4 +688,117 @@ func (app *application) CancelSubscription(w http.ResponseWriter, r *http.Reques
 	resp.Message = "Subscription Cancelled"
 
 	app.writeJSON(w, http.StatusCreated, resp)
+}
+func (app *application) AllUsers(w http.ResponseWriter, r *http.Request) {
+	allUsers, err := app.DB.GetAllUsers()
+
+	if err != nil {
+		app.errorLog.Println(err)
+		app.badRequest(w, r, err)
+		return
+	}
+	app.writeJSON(w, http.StatusOK, allUsers)
+}
+
+func (app *application) OneUSer(w http.ResponseWriter, r *http.Request) {
+	id := chi.URLParam(r, "id")
+	userid, err := strconv.Atoi(id)
+	if err != nil {
+		app.errorLog.Println(err)
+		app.badRequest(w, r, err)
+		return
+	}
+	user, err := app.DB.GetOneUSer(userid)
+
+	if err != nil {
+		app.errorLog.Println(err)
+		app.badRequest(w, r, err)
+		return
+	}
+	app.writeJSON(w, http.StatusOK, user)
+}
+func (app *application) EditUSer(w http.ResponseWriter, r *http.Request) {
+	id := chi.URLParam(r, "id")
+	userID, err := strconv.Atoi(id)
+	if err != nil {
+		app.errorLog.Println(err)
+		app.badRequest(w, r, err)
+		return
+	}
+	var user models.Users
+
+	err = app.readJSON(w, r, &user)
+	if err != nil {
+		app.errorLog.Println(err)
+		app.badRequest(w, r, err)
+		return
+	}
+	if userID > 0 {
+		err = app.DB.EditUser(user)
+		if err != nil {
+			app.errorLog.Println(err)
+			app.badRequest(w, r, err)
+			return
+		}
+		if user.Password != "" {
+			newHash, err := bcrypt.GenerateFromPassword([]byte(user.Password), 12)
+			if err != nil {
+				app.errorLog.Println(err)
+				app.badRequest(w, r, err)
+				return
+			}
+
+			err = app.DB.UpdatePasswordForUSer(user, string(newHash))
+			if err != nil {
+				app.errorLog.Println(err)
+				app.badRequest(w, r, err)
+				return
+			}
+		}
+	} else {
+		newHash, err := bcrypt.GenerateFromPassword([]byte(user.Password), 12)
+		if err != nil {
+			app.errorLog.Println(err)
+			app.badRequest(w, r, err)
+			return
+		}
+
+		err = app.DB.AddUser(user, string(newHash))
+		if err != nil {
+			app.errorLog.Println(err)
+			app.badRequest(w, r, err)
+			return
+		}
+	}
+	var resp struct {
+		Error   bool   `json:"error"`
+		Message string `json:"message"`
+	}
+
+	resp.Error = false
+
+	app.writeJSON(w, http.StatusOK, resp)
+}
+func (app *application) DeleteUSer(w http.ResponseWriter, r *http.Request) {
+	id := chi.URLParam(r, "id")
+	userID, err := strconv.Atoi(id)
+	if err != nil {
+		app.errorLog.Println(err)
+		app.badRequest(w, r, err)
+		return
+	}
+	err = app.DB.DeleteUser(userID)
+	if err != nil {
+		app.errorLog.Println(err)
+		app.badRequest(w, r, err)
+		return
+	}
+	var resp struct {
+		Error   bool   `json:"error"`
+		Message string `json:"message"`
+	}
+
+	resp.Error = false
+
+	app.writeJSON(w, http.StatusOK, resp)
 }

@@ -21,28 +21,69 @@
         
         </tbody>
     </table>
+
+    <nav>
+        <ul class="pagination" id="pagination">
+    
+        </ul>
+    </nav>
+
 {{end}}
 
 {{define "js"}}
     <script>
-        document.addEventListener("DOMContentLoaded",function(){
-            let token = localStorage.getItem("token");
-            let tbody = document.getElementById("subscription-table").getElementsByTagName("tbody")[0];
+        let currentPage = 1;
+        let pageSize = 5;
 
-            const requestOptions = {
-                method:'post',
-                headers : {
-                    'Accept':'application/json',
-                    'Content-Type':'application/json',
-                    'Authorization':'Bearer '+token,
-                },
+        function paginator(pages, curPage){
+            let p = document.getElementById("pagination");
+
+            let html = `<li class="page-item"><a class="page-link pager" href="#!" data-page="${curPage -1}">&lt;</a></li>`;
+
+            for(var i=0; i <= pages;i++){
+                html += `<li class="page-item"><a class="page-link pager" href="#!" data-page="${i + 1}">${i + 1}</a></li>`;
+
             }
+            html += `<li class="page-item"><a class="page-link pager" href="#!" data-page="${curPage + 1}">&gt;</a></li>`;
 
-            fetch("{{.API}}/api/admin/all-subscriptions",requestOptions)
+            p.innerHTML = html;
+
+            let pageBtns = document.getElementsByClassName("pager");
+            for(var j=0; j<pageBtns.length; j++){
+                pageBtns[j].addEventListener("click",function(evt){
+                    let desiredPage = evt.target.getAttribute("data-page");
+                    console.log("Desired",desiredPage)
+                    if(desiredPage > 0 && desiredPage <= pages + 1){
+                        console.log("would go to page",desiredPage);
+                        updateTable(pageSize,desiredPage);
+                    }
+                })
+            }
+        }
+
+        function updateTable(ps,cp){
+        let token = localStorage.getItem("token");
+        let tbody = document.getElementById("subscription-table").getElementsByTagName("tbody")[0];
+
+        let body = {
+            page_size : parseInt(ps,10),
+            page : parseInt(cp,10),
+        }
+        const requestOptions = {
+            method:'post',
+            headers : {
+                'Accept':'application/json',
+                'Content-Type':'application/json',
+                'Authorization':'Bearer '+token,
+            },
+            body: JSON.stringify(body),
+        }
+
+        fetch("{{.API}}/api/admin/all-subscriptions",requestOptions)
                 .then(response =>response.json())
-                .then(function(data){
-                    if (data){
-                        data.forEach(function(i){
+            .then(function(data){
+                if (data.orders){
+                    data.orders.forEach(function(i){
                             let newRow = tbody.insertRow();
                             let newCell = newRow.insertCell();
 
@@ -64,11 +105,11 @@
 
                             newCell = newRow.insertCell();
                             if(i.status_id != 1){
-                                newCell.innerHTML = '<span class="badge bg-dange">Cancelled</span>';
+                                newCell.innerHTML = '<span class="badge bg-danger">Cancelled</span>';
                             }else{
                                 newCell.innerHTML = '<span class="badge bg-success">Active</span>';
                             }
-
+                            paginator(data.last_page,data.current_page);
                         })
                     }else{
                         let newRow = tbody.insertRow();
@@ -78,12 +119,17 @@
                         newCell.innerHTML = "No Data Available";
                     }
                 })
-                function formatCurrency(amount){
-                    return amount.toLocaleString("en-IN",{
-                        style: "currency",
-                        currency: "INR",
-                    })
-                }
+        }
+
+        document.addEventListener("DOMContentLoaded",function(){
+            updateTable(pageSize,currentPage);
+                
         })
+        function formatCurrency(amount){
+            return amount.toLocaleString("en-IN",{
+                style: "currency",
+                currency: "INR",
+            })
+        }
     </script>
 {{end}}
