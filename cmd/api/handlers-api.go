@@ -10,6 +10,7 @@ import (
 	"myapp/internal/encryption"
 	"myapp/internal/models"
 	"myapp/internal/urlsigner"
+	"myapp/internal/validator"
 	"net/http"
 	"strconv"
 	"strings"
@@ -137,7 +138,15 @@ func (app *application) CreateCustomerAndSubscribeToPlan(w http.ResponseWriter, 
 		return
 	}
 
-	app.infoLog.Println(data.Email, data.LastFour, data.PaymentMethod, data.Plan)
+	//validate data
+	v := validator.New()
+	v.Check(len(data.FirstName) > 1, "first_name", "must be atleast 2 characters")
+	v.Check(len(data.LastName) > 1, "last_name", "must be atleast 2 characters")
+
+	if !v.Valid() {
+		app.failedValidation(w, r, v.Errors)
+		return
+	}
 
 	card := cards.Card{
 		Secret:   app.config.stripe.secret,

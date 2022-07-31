@@ -1,0 +1,1 @@
+{"buildTargets":["build","build_back","build_front","build_invoice","clean","start","start_back","start_front","start_invoice","stop","stop_back","stop_front","stop_invoice"],"launchTargets":[],"customConfigurationProvider":{"workspaceBrowse":{"browsePath":[],"compilerArgs":[]},"fileIndex":[]}}

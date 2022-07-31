@@ -1,0 +1,16 @@
+make.exe --dry-run --always-make --keep-going --print-directory
+make: Entering directory 'd:/Go-Workspace/go-stripe'
+echo Cleaning...
+echo y | DEL /S dist
+go clean
+ 
+echo Cleaned and deleted binaries
+echo Building front end...
+go build -o dist/gostripe.exe ./cmd/web
+echo Front end built!
+echo Building back end...
+go build -o dist/gostripe_api.exe ./cmd/api
+echo Back end built!
+echo All binaries built!
+make: Leaving directory 'd:/Go-Workspace/go-stripe'
+ 
